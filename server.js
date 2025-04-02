@@ -9,15 +9,42 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+// Log application startup info
+console.log('Starting server...');
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Current directory:', __dirname);
+console.log('Node.js version:', process.version);
+
 // Serve static files from the client/build directory in production
 if (process.env.NODE_ENV === 'production') {
   // Check if the client/build directory exists
   const buildPath = path.join(__dirname, 'client/build');
+  console.log('Checking for build path at:', buildPath);
+  
   if (fs.existsSync(buildPath)) {
-    console.log('Serving static files from:', buildPath);
+    console.log('✅ Build directory found! Serving static files from:', buildPath);
+    // List files in the build directory to verify content
+    try {
+      const files = fs.readdirSync(buildPath);
+      console.log('Build directory contents:', files);
+    } catch (err) {
+      console.error('Error reading build directory:', err);
+    }
+    
     app.use(express.static(buildPath));
   } else {
-    console.log('Warning: Build directory does not exist at:', buildPath);
+    console.warn('⚠️  Warning: Build directory does not exist at:', buildPath);
+    // Try listing the directory structure to debug
+    try {
+      const clientDir = path.join(__dirname, 'client');
+      if (fs.existsSync(clientDir)) {
+        console.log('Client directory exists, contents:', fs.readdirSync(clientDir));
+      } else {
+        console.warn('Client directory does not exist at:', clientDir);
+      }
+    } catch (err) {
+      console.error('Error checking directory structure:', err);
+    }
   }
 }
 
@@ -218,17 +245,28 @@ app.get('/api/game-status', (req, res) => {
 
 // Create a simple index.html for the root route if client/build doesn't exist
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    buildPath: path.join(__dirname, 'client/build'),
+    buildExists: fs.existsSync(path.join(__dirname, 'client/build')),
+    env: process.env.NODE_ENV,
+    nodeVersion: process.version
+  });
 });
 
 // Send React app for all other routes in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
     const indexPath = path.join(__dirname, 'client/build', 'index.html');
+    console.log('Request for path:', req.path);
+    console.log('Checking for index.html at:', indexPath);
     
     if (fs.existsSync(indexPath)) {
+      console.log('✅ index.html found, serving file');
       res.sendFile(indexPath);
     } else {
+      console.warn('⚠️  index.html not found, serving fallback HTML');
       // Fallback to a simple HTML page if the build doesn't exist
       res.send(`
         <!DOCTYPE html>
@@ -274,6 +312,16 @@ if (process.env.NODE_ENV === 'production') {
                 background-color: #34495e;
                 border-radius: 5px;
               }
+              .debug-info {
+                margin-top: 20px;
+                padding: 15px;
+                background-color: #34495e;
+                border-radius: 5px;
+                max-width: 80%;
+                overflow-wrap: break-word;
+                font-family: monospace;
+                font-size: 12px;
+              }
             </style>
           </head>
           <body>
@@ -299,6 +347,14 @@ if (process.env.NODE_ENV === 'production') {
             </div>
             <div class="server-status">
               Server is ready to accept connections
+            </div>
+            <div class="debug-info">
+              <p>Directory: ${__dirname}</p>
+              <p>Node.js version: ${process.version}</p>
+              <p>Environment: ${process.env.NODE_ENV}</p>
+              <p>Timestamp: ${new Date().toISOString()}</p>
+              <p>Build Path: ${path.join(__dirname, 'client/build')}</p>
+              <p>Build Exists: ${fs.existsSync(path.join(__dirname, 'client/build'))}</p>
             </div>
           </body>
         </html>
