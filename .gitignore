@@ -6,12 +6,10 @@
 
 # testing
 /coverage
-/client/coverage
 
 # production
 /build
-# Commenting out the client/build exclusion to ensure it's included in git
-# /client/build
+/client/build
 
 # misc
 .DS_Store
@@ -21,20 +19,7 @@
 .env.test.local
 .env.production.local
 
-# logs
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-logs
-*.log
-
-# Editor directories and files
-.idea
-.vscode
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
+yarn-error.log* 
 node_modules

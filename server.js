@@ -3,49 +3,15 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const fs = require('fs');
+const { execSync } = require('child_process');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Log application startup info
-console.log('Starting server...');
-console.log('Environment:', process.env.NODE_ENV);
-console.log('Current directory:', __dirname);
-console.log('Node.js version:', process.version);
-
 // Serve static files from the client/build directory in production
 if (process.env.NODE_ENV === 'production') {
-  // Check if the client/build directory exists
-  const buildPath = path.join(__dirname, 'client/build');
-  console.log('Checking for build path at:', buildPath);
-  
-  if (fs.existsSync(buildPath)) {
-    console.log('✅ Build directory found! Serving static files from:', buildPath);
-    // List files in the build directory to verify content
-    try {
-      const files = fs.readdirSync(buildPath);
-      console.log('Build directory contents:', files);
-    } catch (err) {
-      console.error('Error reading build directory:', err);
-    }
-    
-    app.use(express.static(buildPath));
-  } else {
-    console.warn('⚠️  Warning: Build directory does not exist at:', buildPath);
-    // Try listing the directory structure to debug
-    try {
-      const clientDir = path.join(__dirname, 'client');
-      if (fs.existsSync(clientDir)) {
-        console.log('Client directory exists, contents:', fs.readdirSync(clientDir));
-      } else {
-        console.warn('Client directory does not exist at:', clientDir);
-      }
-    } catch (err) {
-      console.error('Error checking directory structure:', err);
-    }
-  }
+  app.use(express.static(path.join(__dirname, 'client/build')));
 }
 
 // Game state
@@ -243,123 +209,10 @@ app.get('/api/game-status', (req, res) => {
   });
 });
 
-// Create a simple index.html for the root route if client/build doesn't exist
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    buildPath: path.join(__dirname, 'client/build'),
-    buildExists: fs.existsSync(path.join(__dirname, 'client/build')),
-    env: process.env.NODE_ENV,
-    nodeVersion: process.version
-  });
-});
-
 // Send React app for all other routes in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    const indexPath = path.join(__dirname, 'client/build', 'index.html');
-    console.log('Request for path:', req.path);
-    console.log('Checking for index.html at:', indexPath);
-    
-    if (fs.existsSync(indexPath)) {
-      console.log('✅ index.html found, serving file');
-      res.sendFile(indexPath);
-    } else {
-      console.warn('⚠️  index.html not found, serving fallback HTML');
-      // Fallback to a simple HTML page if the build doesn't exist
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Chinese Poker</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-                justify-content: center; 
-                height: 100vh; 
-                margin: 0;
-                background-color: #2c3e50;
-                color: #ecf0f1;
-              }
-              h1 { color: #e74c3c; }
-              p { margin-bottom: 20px; }
-              .card-container {
-                display: flex;
-                margin-top: 30px;
-              }
-              .card {
-                width: 80px;
-                height: 120px;
-                margin: 0 10px;
-                background-color: white;
-                border-radius: 5px;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                color: black;
-                font-weight: bold;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-              }
-              .hearts, .diamonds { color: #e74c3c; }
-              .server-status {
-                margin-top: 20px;
-                padding: 10px 20px;
-                background-color: #34495e;
-                border-radius: 5px;
-              }
-              .debug-info {
-                margin-top: 20px;
-                padding: 15px;
-                background-color: #34495e;
-                border-radius: 5px;
-                max-width: 80%;
-                overflow-wrap: break-word;
-                font-family: monospace;
-                font-size: 12px;
-              }
-            </style>
-          </head>
-          <body>
-            <h1>Chinese Poker Game</h1>
-            <p>Server is running, but the client build is not available.</p>
-            <div class="card-container">
-              <div class="card hearts">
-                <div>A</div>
-                <div>♥</div>
-              </div>
-              <div class="card spades">
-                <div>K</div>
-                <div>♠</div>
-              </div>
-              <div class="card diamonds">
-                <div>Q</div>
-                <div>♦</div>
-              </div>
-              <div class="card clubs">
-                <div>J</div>
-                <div>♣</div>
-              </div>
-            </div>
-            <div class="server-status">
-              Server is ready to accept connections
-            </div>
-            <div class="debug-info">
-              <p>Directory: ${__dirname}</p>
-              <p>Node.js version: ${process.version}</p>
-              <p>Environment: ${process.env.NODE_ENV}</p>
-              <p>Timestamp: ${new Date().toISOString()}</p>
-              <p>Build Path: ${path.join(__dirname, 'client/build')}</p>
-              <p>Build Exists: ${fs.existsSync(path.join(__dirname, 'client/build'))}</p>
-            </div>
-          </body>
-        </html>
-      `);
-    }
+    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
   });
 }
 
@@ -367,4 +220,21 @@ if (process.env.NODE_ENV === 'production') {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-}); 
+});
+
+// Check for Render environment
+const isRender = process.env.RENDER === 'true' || process.env.IS_RENDER === 'true';
+console.log('Running on Render:', isRender ? 'Yes' : 'No');
+
+// Additional check for the build directory in Render
+if (process.env.NODE_ENV === 'production' && isRender) {
+  console.log('Performing additional Render-specific checks');
+  
+  // Check the file permissions
+  try {
+    const buildPath = path.join(__dirname, 'client/build');
+    execSync(`ls -la ${buildPath}`, { stdio: 'inherit' });
+  } catch (err) {
+    console.error('Error checking build directory permissions:', err);
+  }
+} 
