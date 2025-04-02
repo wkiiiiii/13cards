@@ -2,12 +2,16 @@ services:
   - type: web
     name: chinese-poker
     env: node
-    buildCommand: npm install && npm run install-client && cd client && npm run build && cd ..
+    buildCommand: |
+      npm install
+      node build-client.js
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_OPTIONS
         value: --max-old-space-size=2048
+      - key: CI
+        value: "false"
     plan: free
     healthCheckPath: /api/health 
