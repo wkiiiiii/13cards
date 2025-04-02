@@ -7,10 +7,15 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "client": "cd client && npm start",
-    "build": "cd client && npm run build",
+    "build": "cd client && npm install && npm run build",
     "install-client": "cd client && npm install",
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client",
+    "render-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --prefix client && npm run build --prefix client",
     "setup": "npm install && npm run install-client",
     "dev-all": "concurrently \"npm run dev\" \"npm run client\""
+  },
+  "engines": {
+    "node": "16.x"
   },
   "dependencies": {
     "express": "^4.18.2",

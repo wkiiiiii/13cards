@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: chinese-poker
+    env: node
+    buildCommand: npm install && npm run render-postbuild
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    plan: free
+    healthCheckPath: /api/health 

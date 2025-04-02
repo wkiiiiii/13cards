@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -10,7 +11,14 @@ const io = socketIo(server);
 
 // Serve static files from the client/build directory in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
+  // Check if the client/build directory exists
+  const buildPath = path.join(__dirname, 'client/build');
+  if (fs.existsSync(buildPath)) {
+    console.log('Serving static files from:', buildPath);
+    app.use(express.static(buildPath));
+  } else {
+    console.log('Warning: Build directory does not exist at:', buildPath);
+  }
 }
 
 // Game state
@@ -208,10 +216,94 @@ app.get('/api/game-status', (req, res) => {
   });
 });
 
+// Create a simple index.html for the root route if client/build doesn't exist
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Send React app for all other routes in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    const indexPath = path.join(__dirname, 'client/build', 'index.html');
+    
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      // Fallback to a simple HTML page if the build doesn't exist
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Chinese Poker</title>
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                justify-content: center; 
+                height: 100vh; 
+                margin: 0;
+                background-color: #2c3e50;
+                color: #ecf0f1;
+              }
+              h1 { color: #e74c3c; }
+              p { margin-bottom: 20px; }
+              .card-container {
+                display: flex;
+                margin-top: 30px;
+              }
+              .card {
+                width: 80px;
+                height: 120px;
+                margin: 0 10px;
+                background-color: white;
+                border-radius: 5px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                color: black;
+                font-weight: bold;
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+              }
+              .hearts, .diamonds { color: #e74c3c; }
+              .server-status {
+                margin-top: 20px;
+                padding: 10px 20px;
+                background-color: #34495e;
+                border-radius: 5px;
+              }
+            </style>
+          </head>
+          <body>
+            <h1>Chinese Poker Game</h1>
+            <p>Server is running, but the client build is not available.</p>
+            <div class="card-container">
+              <div class="card hearts">
+                <div>A</div>
+                <div>♥</div>
+              </div>
+              <div class="card spades">
+                <div>K</div>
+                <div>♠</div>
+              </div>
+              <div class="card diamonds">
+                <div>Q</div>
+                <div>♦</div>
+              </div>
+              <div class="card clubs">
+                <div>J</div>
+                <div>♣</div>
+              </div>
+            </div>
+            <div class="server-status">
+              Server is ready to accept connections
+            </div>
+          </body>
+        </html>
+      `);
+    }
   });
 }
 
