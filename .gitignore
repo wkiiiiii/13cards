@@ -10,7 +10,8 @@
 
 # production
 /build
-/client/build
+# Commenting out the client/build exclusion to ensure it's included in git
+# /client/build
 
 # misc
 .DS_Store

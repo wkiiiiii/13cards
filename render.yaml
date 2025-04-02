@@ -4,14 +4,17 @@ services:
     env: node
     buildCommand: |
       npm install
-      node build-client.js
+      ls -la
+      NODE_OPTIONS="--openssl-legacy-provider" node build-client.js
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_OPTIONS
-        value: --max-old-space-size=2048
+        value: "--max-old-space-size=2048 --openssl-legacy-provider"
       - key: CI
+        value: "false"
+      - key: GENERATE_SOURCEMAP
         value: "false"
     plan: free
     healthCheckPath: /api/health 

@@ -1,0 +1,6 @@
+{
+  "name": "chinese-poker-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pre-created build directory to help with deployment"
+} 
